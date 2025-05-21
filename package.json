@@ -26,10 +26,8 @@
     "commander": "^11.1.0",
     "openai": "^4.100.0",
     "tree-sitter": "^0.21.1",
-    "tree-sitter-c": "^0.23.5",
     "tree-sitter-c-sharp": "^0.23.1",
     "tree-sitter-cpp": "^0.23.4",
-    "tree-sitter-haxe": "^0.13.0",
     "tree-sitter-java": "^0.23.5",
     "tree-sitter-typescript": "^0.23.2"
   },
@@ -37,5 +35,8 @@
     "@types/node": "^20.10.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2"
+  },
+  "overrides": {
+    "tree-sitter": "^0.21.1"
   }
 }
