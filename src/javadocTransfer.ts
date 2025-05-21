@@ -153,7 +153,7 @@ export async function transferJavadocsToSourceFile(
 			const edits = parseJsonResponse<{ oldString: string; newString: string }>(response.text);
 			updatedCode = await applyEdits(edits, updatedCode, debug);
 			await writeFile(filePath, updatedCode);
-			if (edits.length == 0) break;
+			if (edits.length === 0 || edits.every(edit => edit.oldString === edit.newString)) break;
 
 			// Step 5: Correction phase
 			console.log(chalk.gray(`  │      ├─ Checking for documentation errors...`));
@@ -168,7 +168,7 @@ export async function transferJavadocsToSourceFile(
 			const corrections = parseJsonResponse<{ oldString: string; newString: string }>(correctionResponse.text);
 			updatedCode = await applyEdits(corrections, updatedCode, debug);
 			await writeFile(filePath, updatedCode);
-			if (corrections.length == 0) break;
+			if (corrections.length === 0 || corrections.every(edit => edit.oldString === edit.newString)) break;
 		} while (++iterations < maxIterations);
 
 		console.log(chalk.green(`  └─ ✓ Complete\n`));
