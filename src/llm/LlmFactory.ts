@@ -1,6 +1,7 @@
 import { LlmInterface } from "./LlmInterface";
 import { GeminiLlm } from "./GeminiLlm";
 import { OpenAILlm } from "./OpenAILlm";
+import { AnthropicLlm } from "./AnthropicLlm";
 import { LlmModel, MODELS } from "./models";
 
 /**
@@ -36,6 +37,8 @@ export class LlmFactory {
         apiKey = process.env.GEMINI_API_KEY || "";
       } else if (modelInfo.provider === "openai") {
         apiKey = process.env.OPENAI_API_KEY || "";
+      } else if (modelInfo.provider === "anthropic") {
+        apiKey = process.env.ANTHROPIC_API_KEY || "";
       } else {
         throw new Error("No API key provided and no default key found");
       }
@@ -56,6 +59,14 @@ export class LlmFactory {
           apiKey,
           model: modelInfo.id,
           temperature,
+          maxOutputTokens
+        });
+
+      case "anthropic":
+        return new AnthropicLlm({
+          apiKey,
+          model: modelInfo.id,
+          temperature: temperature ?? 0.7,
           maxOutputTokens
         });
 

@@ -1,6 +1,6 @@
 /**
  * Auto-generated model definitions
- * Generated on: 2025-05-21T13:09:07.061Z
+ * Generated on: 2025-05-21T14:41:01.540Z
  * Source: https://raw.githubusercontent.com/crmne/ruby_llm/main/lib/ruby_llm/models.json
  */
 
@@ -10,7 +10,7 @@
 export interface ModelInfo {
   id: string;
   name: string;
-  provider: 'gemini' | 'openai';
+  provider: 'gemini' | 'openai' | 'anthropic';
   maxOutputTokens: number | null;
   maxInputTokens: number | null;
 }
@@ -19,6 +19,42 @@ export interface ModelInfo {
  * Available LLM models for use with the factory
  */
 export enum LlmModel {
+  /** Claude 2.0 */
+  CLAUDE_2_0 = 'claude-2.0',
+
+  /** Claude 2.1 */
+  CLAUDE_2_1 = 'claude-2.1',
+
+  /** Claude 3.5 Haiku */
+  CLAUDE_3_5_HAIKU_20241022 = 'claude-3-5-haiku-20241022',
+
+  /** Claude 3.5 Haiku */
+  CLAUDE_3_5_HAIKU_LATEST = 'claude-3-5-haiku-latest',
+
+  /** Claude 3.5 Sonnet (Old) */
+  CLAUDE_3_5_SONNET_20240620 = 'claude-3-5-sonnet-20240620',
+
+  /** Claude 3.5 Sonnet (New) */
+  CLAUDE_3_5_SONNET_20241022 = 'claude-3-5-sonnet-20241022',
+
+  /** Claude 3.7 Sonnet */
+  CLAUDE_3_7_SONNET_20250219 = 'claude-3-7-sonnet-20250219',
+
+  /** Claude 3.7 Sonnet */
+  CLAUDE_3_7_SONNET_LATEST = 'claude-3-7-sonnet-latest',
+
+  /** Claude 3 Haiku */
+  CLAUDE_3_HAIKU_20240307 = 'claude-3-haiku-20240307',
+
+  /** Claude 3 Opus */
+  CLAUDE_3_OPUS_20240229 = 'claude-3-opus-20240229',
+
+  /** Claude 3 Opus */
+  CLAUDE_3_OPUS_LATEST = 'claude-3-opus-latest',
+
+  /** Claude 3 Sonnet */
+  CLAUDE_3_SONNET_20240229 = 'claude-3-sonnet-20240229',
+
   /** AQA */
   AQA = 'aqa',
 
@@ -384,6 +420,90 @@ export enum LlmModel {
  * Detailed information about each model
  */
 export const MODELS: Record<LlmModel, ModelInfo> = {
+  [LlmModel.CLAUDE_2_0]: {
+    id: 'claude-2.0',
+    name: 'Claude 2.0',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_2_1]: {
+    id: 'claude-2.1',
+    name: 'Claude 2.1',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_5_HAIKU_20241022]: {
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
+    provider: 'anthropic',
+    maxOutputTokens: 8192,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_5_HAIKU_LATEST]: {
+    id: 'claude-3-5-haiku-latest',
+    name: 'Claude 3.5 Haiku',
+    provider: 'anthropic',
+    maxOutputTokens: 8192,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_5_SONNET_20240620]: {
+    id: 'claude-3-5-sonnet-20240620',
+    name: 'Claude 3.5 Sonnet (Old)',
+    provider: 'anthropic',
+    maxOutputTokens: 8192,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_5_SONNET_20241022]: {
+    id: 'claude-3-5-sonnet-20241022',
+    name: 'Claude 3.5 Sonnet (New)',
+    provider: 'anthropic',
+    maxOutputTokens: 8192,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_7_SONNET_20250219]: {
+    id: 'claude-3-7-sonnet-20250219',
+    name: 'Claude 3.7 Sonnet',
+    provider: 'anthropic',
+    maxOutputTokens: 64000,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_7_SONNET_LATEST]: {
+    id: 'claude-3-7-sonnet-latest',
+    name: 'Claude 3.7 Sonnet',
+    provider: 'anthropic',
+    maxOutputTokens: 64000,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_HAIKU_20240307]: {
+    id: 'claude-3-haiku-20240307',
+    name: 'Claude 3 Haiku',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_OPUS_20240229]: {
+    id: 'claude-3-opus-20240229',
+    name: 'Claude 3 Opus',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_OPUS_LATEST]: {
+    id: 'claude-3-opus-latest',
+    name: 'Claude 3 Opus',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_3_SONNET_20240229]: {
+    id: 'claude-3-sonnet-20240229',
+    name: 'Claude 3 Sonnet',
+    provider: 'anthropic',
+    maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
   [LlmModel.AQA]: {
     id: 'aqa',
     name: 'AQA',
@@ -1235,3 +1355,8 @@ export const GEMINI_MODELS = Object.values(MODELS).filter(model => model.provide
  * OpenAI-specific models
  */
 export const OPENAI_MODELS = Object.values(MODELS).filter(model => model.provider === 'openai');
+
+/**
+ * Anthropic-specific models
+ */
+export const ANTHROPIC_MODELS = Object.values(MODELS).filter(model => model.provider === 'anthropic');

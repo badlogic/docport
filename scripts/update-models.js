@@ -58,22 +58,23 @@ async function generateModelsFile() {
     console.log(`Fetching models from ${MODEL_JSON_URL}...`);
     const models = await fetchJson(MODEL_JSON_URL);
 
-    // Filter for Gemini and OpenAI models that support text input and text output
+    // Filter for Gemini, OpenAI, and Anthropic models that support text input and text output
     const filteredModels = models.filter(model =>
-      (model.provider === 'gemini' || model.provider === 'openai') &&
+      (model.provider === 'gemini' || model.provider === 'openai' || model.provider === 'anthropic') &&
       supportsTextModality(model)
     );
 
     if (filteredModels.length === 0) {
-      console.error('No suitable Gemini or OpenAI models found in the JSON file');
+      console.error('No suitable models found in the JSON file');
       return;
     }
 
-    console.log(`Found ${filteredModels.length} models (${filteredModels.filter(m => m.provider === 'gemini').length} Gemini, ${filteredModels.filter(m => m.provider === 'openai').length} OpenAI)`);
+    console.log(`Found ${filteredModels.length} models (${filteredModels.filter(m => m.provider === 'gemini').length} Gemini, ${filteredModels.filter(m => m.provider === 'openai').length} OpenAI, ${filteredModels.filter(m => m.provider === 'anthropic').length} Anthropic)`);
 
     // Group models by provider
     const geminiModels = filteredModels.filter(model => model.provider === 'gemini');
     const openaiModels = filteredModels.filter(model => model.provider === 'openai');
+    const anthropicModels = filteredModels.filter(model => model.provider === 'anthropic');
 
     // Generate TypeScript content
     let tsContent = `/**
@@ -88,7 +89,7 @@ async function generateModelsFile() {
 export interface ModelInfo {
   id: string;
   name: string;
-  provider: 'gemini' | 'openai';
+  provider: 'gemini' | 'openai' | 'anthropic';
   maxOutputTokens: number | null;
   maxInputTokens: number | null;
 }
@@ -147,6 +148,11 @@ export const GEMINI_MODELS = Object.values(MODELS).filter(model => model.provide
  * OpenAI-specific models
  */
 export const OPENAI_MODELS = Object.values(MODELS).filter(model => model.provider === 'openai');
+
+/**
+ * Anthropic-specific models
+ */
+export const ANTHROPIC_MODELS = Object.values(MODELS).filter(model => model.provider === 'anthropic');
 `;
 
     // Ensure the directory exists

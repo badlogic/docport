@@ -36,6 +36,9 @@ export OPENAI_API_KEY=your_key_here
 
 # For Google Gemini models
 export GEMINI_API_KEY=your_key_here
+
+# For Anthropic Claude models
+export ANTHROPIC_API_KEY=your_key_here
 ```
 
 ### Options
