@@ -2,6 +2,12 @@
 
 A tool to transfer Javadoc documentation from Java source files to other languages (C#, C++, TypeScript, JavaScript, Haxe, and ActionScript).
 
+Docport works by extracting Javadoc comments from Java source files, identifying matching types in target language files using tree-sitter parsers, and then using LLMs (OpenAI or Google Gemini) to transfer and format the documentation appropriately for the target language syntax.
+
+The tool still requires a human to review the output and make any necessary adjustments.
+
+Docport is used to keep the documentation in sync between the [Spine Runtimes Java reference implementation](https://github.com/EsotericSoftware/spine-runtimes/tree/4.2/spine-libgdx/spine-libgdx) and ports to other languages, like [spine-cpp](https://github.com/EsotericSoftware/spine-runtimes/tree/4.2/spine-cpp/spine-cpp).
+
 ## Setup
 
 ```bash
@@ -40,6 +46,8 @@ export GEMINI_API_KEY=your_key_here
 - `-t, --temperature <temp>` - LLM temperature (default: 0.7)
 - `-k, --key <key>` - LLM API key (optional, can use environment variables)
 - `-h, --help` - Display help information
+
+For a list of model names that can be passed to the `--model` flag, see [LlmModel](./src/llm/models.ts).
 
 ## Examples
 
