@@ -18,7 +18,7 @@ async function main() {
   const javadocsJson = await readFile(javadocsPath);
   const javaTypes = JSON.parse(javadocsJson);
 
-  const usage = await transferJavadocsToSourceFile(filePath, javaTypes, llm, [], true);
+  const usage = await transferJavadocsToSourceFile(filePath, javaTypes, llm, [], false);
   console.log(chalk.green(`Tokens used: ${usage.totalTokens.toLocaleString()} (${usage.inputTokens.toLocaleString()} input, ${usage.outputTokens.toLocaleString()} output)`));
 }
 

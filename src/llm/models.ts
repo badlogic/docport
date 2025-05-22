@@ -1,6 +1,6 @@
 /**
  * Auto-generated model definitions
- * Generated on: 2025-05-21T14:41:01.540Z
+ * Generated on: 2025-05-22T18:09:10.347Z
  * Source: https://raw.githubusercontent.com/crmne/ruby_llm/main/lib/ruby_llm/models.json
  */
 
@@ -54,6 +54,12 @@ export enum LlmModel {
 
   /** Claude 3 Sonnet */
   CLAUDE_3_SONNET_20240229 = 'claude-3-sonnet-20240229',
+
+  /** Claude 4 Opus */
+  CLAUDE_4_OPUS_LATEST = 'claude-opus-4-0',
+
+  /** Claude 4 Sonnet */
+  CLAUDE_4_SONNET_LATEST = 'claude-sonnet-4-0',
 
   /** AQA */
   AQA = 'aqa',
@@ -502,6 +508,20 @@ export const MODELS: Record<LlmModel, ModelInfo> = {
     name: 'Claude 3 Sonnet',
     provider: 'anthropic',
     maxOutputTokens: 4096,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_4_OPUS_LATEST]: {
+    id: 'claude-opus-4-0',
+    name: 'Claude 4 Opus',
+    provider: 'anthropic',
+    maxOutputTokens: 32000,
+    maxInputTokens: 200000,
+  },
+  [LlmModel.CLAUDE_4_SONNET_LATEST]: {
+    id: 'claude-sonnet-4-0',
+    name: 'Claude 4 Sonnet',
+    provider: 'anthropic',
+    maxOutputTokens: 64000,
     maxInputTokens: 200000,
   },
   [LlmModel.AQA]: {

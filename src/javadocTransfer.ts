@@ -188,8 +188,11 @@ export async function transferJavadocsToSourceFile(
 		const codeChanged = await hasCodeChanges(sourceCode, updatedCode, llm);
 		if (codeChanged.hasChanged) {
 			// error code was changed. add to logs as well
-			console.error(chalk.red(`  └─ ❌ Error: Code was changed`));
-			transferLogs.push({ level: "error", message: "Code changed in " + filePath + ": " + codeChanged.changes });
+			console.error(chalk.red(`  └─ ❌ Error: Code may have changed`));
+			console.log(chalk.gray(`───────────────────────────────────────────────────`));
+			console.log(codeChanged.changes);
+			console.log(chalk.gray(`───────────────────────────────────────────────────`));
+			transferLogs.push({ level: "error", message: "Code may have changed in " + filePath + ":\n───────────────────────────────────────────────────\n" + codeChanged.changes + "\n───────────────────────────────────────────────────"});
 		} else {
 			console.log(chalk.green(`  └─ ✓ Complete\n`));
 		}
@@ -406,9 +409,11 @@ CRITICAL REQUIREMENTS:
 - DO NOT add parameter documentation if the Java doc doesn't include it
 - DO NOT add return documentation if the Java doc doesn't include it
 - DO NOT duplicate documentation
+- DO NOT emit edits where oldString and newString are identical
 - DO NOT add documentation to elements that are not in the Java documentation
 - PRESERVE the exact indentation of the original code
 - MATCH the indentation of documentation comments to the code they document
+- YOU MUST follow the documentation style for ${getLanguageName(fileExtension)} exactly
 
 ABSOLUTELY DO NOT add documentation to elements that are not in the Java documentation!
 
@@ -617,16 +622,24 @@ Use documentation comments for Haxe code:
 - Use @param paramName description for parameters
 - Use @return description for return values
 - Use @throws Type description for exceptions
+- Reference classes using full package paths: package.ClassName
+- Reference methods using ClassName.methodName() notation
+- Reference fields using ClassName.fieldName notation
+- Use @see package.ClassName for related class references
+- Use @see package.ClassName.methodName() for related method references
+- Use @see package.ClassName.fieldName for related field references
 
 Example:
 /**
  * Stores and manipulates the bones of a skeleton.
+ * @see spine.Bone
  */
 class Skeleton {
     /**
      * Finds a bone by its name.
      * @param boneName The name of the bone to find.
-     * @return The bone, or null if not found.
+     * @return The spine.Bone instance, or null if not found.
+     * @see Skeleton.getBones()
      */
     public function findBone(boneName:String):Bone { ... }
 }`;
@@ -724,43 +737,68 @@ async function hasCodeChanges(oldCode: string, newCode: string, llm: LlmInterfac
 	}
 
 	const prompt = `# Task: Identify code changes in diffs
-	You are given a diff for a source code file. Identify all changes to the code, except documentation changes.
+You are given a diff for a source code file in some programming language like Java, TypeScript, C#, C++, etc.
+Identify and output all modifications to executable code. Seperate each modification by an empty line.
+Modifications to documentation or comments should not be included.
 
-	## Source Code
-	\`\`\`
-	${diff}
-	\`\`\`
+## Source Code Diff
+\`\`\`
+${diff}
+\`\`\`
 
-	## Task and Output Specification
-	Output each code modification. Separate each modification by an empty line. Output only the part of the diff that actually modifies existing code. Do not include changes that only change documentation.
+## Output Specification
 
-	Input example:
-	\`\`\`
-	-	public var getUpdateCache(get, never):Array<Updatable>;
-	+	/** The list of bones and constraints, sorted in the order they should be updated, as computed by {@link #updateCache()}. */
-	+	public var updateCache(get, never):Array<Updatable>;
+### Example 1
 
-	-	private function get_getUpdateCache():Array<Updatable> {
-	+	private function get_updateCache():Array<Updatable> {
-			 return _updateCache;
-		 }
-	\`\`\`
+Input:
+\`\`\`
+-	public var getUpdateCache(get, never):Array<Updatable>;
++	/** The list of bones and constraints, sorted in the order they should be updated, as computed by {@link #updateCache()}. */
++	public var updateCache(get, never):Array<Updatable>;
 
-	Output example:
-	\`\`\`
-	-	private function get_getUpdateCache():Array<Updatable> {
-	+	private function get_updateCache():Array<Updatable> {
-			 return _updateCache;
-		 }
-	\`\`\`
+-	private function get_getUpdateCache():Array<Updatable> {
++	private function get_updateCache():Array<Updatable> {
+			return _updateCache;
+		}
+\`\`\`
 
-	If there are no modifications, output nothing or an empty line.
+Output:
+\`\`\`
+-	private function get_getUpdateCache():Array<Updatable> {
++	private function get_updateCache():Array<Updatable> {
+			return _updateCache;
+		}
+\`\`\`
 
-	Only output the modifications you identified.
+### Example 2
+Input:
+\`\`\`
+-    // Gets the bone by name
+-    public Bone getBone(String name) {
++    /**
++     * Retrieves a bone from the skeleton by its name.
++     * @param name The name of the bone to find
++     * @returns The bone instance, or null if not found
++     */
++    public Bone getBone(String name) {
+         return bones.get(name);
+     }
+\`\`\`
 
-	DO NOT output text explaining your thinking.`;
+Output:
+\`\`\`
+<empty>
+\`\`\`
+
+Note how in this example, the diff is empty because there are no modifications to executable code, only documentation.
+
+## CRITICAL:
+- If you don't find any modifications, output <empty>.
+- ONLY output modifications to executable code, not to documentation or comments!
+- ONLY output the modifications you identified.
+- DO NOT output text explaining your thinking.`;
 
 	const response = await llm.complete(prompt);
 
-	return { hasChanged: response.text.trim().length > 0, changes: response.text };
+	return { hasChanged: response.text.trim() !== "<empty>", changes: response.text };
 }
