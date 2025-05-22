@@ -4,3 +4,8 @@ dist/
 *.log
 javadocs.json
 token_stats.json
+correction-prompt.txt
+correction-response.txt
+doc-prompt.txt
+doc-response.txt
+type-mapping-prompt.txt

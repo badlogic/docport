@@ -18,10 +18,11 @@ program
 program
   .option("-j, --javadocs <path>", "Source directory containing Java files with Javadocs")
   .option("-r, --runtime <path>", "Source directory containing target runtime to transfer Javadocs to")
-  .option("-m, --model <model>", "LLM model to use (only for LLM parser)", LlmModel.GEMINI_2_5_FLASH_PREVIEW_04_17_THINKING)
+  .option("-m, --model <model>", "LLM model to use (only for LLM parser)", LlmModel.CLAUDE_3_7_SONNET_LATEST)
   .option("-t, --temperature <temperature>", "LLM temperature (only for LLM parser)", "0.7")
   .option("-k, --key <key>", "LLM API key (only for LLM parser)", undefined)
   .action(async (options: { javadocs: string, runtime: string, model: string, temperature: string, key?: string }) => {
+    const startTime = Date.now();
     try {
       if (!options.javadocs) {
         throw new Error("Javadocs directory (--javadocs) is required");
@@ -41,11 +42,21 @@ program
       );
 
       // Transfer Javadocs to target runtime
-      const tokenStats = await transferJavadocs(options.runtime, javadocs, llm);
+      const result = await transferJavadocs(options.runtime, javadocs, llm);
+      console.log(chalk.green(`✓ Logs: ${result.logs.length}`));
+      // Output info logs first
+      for (const log of result.logs.filter(l => l.level === "info")) {
+        console.log(chalk.yellow(`  └─ ${log.message}`));
+      }
+      // Then output error logs in red
+      for (const log of result.logs.filter(l => l.level === "error")) {
+        console.log(chalk.red(`  └─ ${log.message}`));
+      }
+      console.log(chalk.green(`✓ Tokens used: ${result.tokenStats.totalTokens.toLocaleString()} (${result.tokenStats.inputTokens.toLocaleString()} input, ${result.tokenStats.outputTokens.toLocaleString()} output)`));
 
-      // Save token stats to a file for analysis if needed
-      writeFile("./token_stats.json", JSON.stringify(tokenStats, null, 2));
-
+      // Add execution time output
+      const executionTime = (Date.now() - startTime) / 1000;
+      console.log(chalk.green(`✓ Execution time: ${executionTime.toFixed(2)} seconds`));
     } catch (error) {
       console.error(chalk.red.bold("❌ Error:"), chalk.red((error as Error).message));
       process.exit(1);

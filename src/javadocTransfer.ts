@@ -4,13 +4,24 @@ import { findFiles, readFile, writeFile } from "./fileUtils";
 import { JavaEnumConstant, JavaMember, JavaType } from "./javadocExtraction";
 import { LlmInterface, LlmUsage } from "./llm/LlmInterface";
 import { extractTypesFromSourceCode } from "./typeExtraction";
+import { diffLines } from "diff";
+
+type TransferResult = {
+	tokenStats: LlmUsage;
+	logs: TransferLog[];
+};
+
+type TransferLog = {
+	level: "info" | "error";
+	message: string;
+};
 
 export async function transferJavadocs(
 	runtimeDir: string,
 	javaTypes: JavaType[],
 	llm: LlmInterface,
 	debug = false
-): Promise<LlmUsage> {
+): Promise<TransferResult> {
 	console.log(chalk.magenta.bold(`\n🔄 Transferring Javadocs to target runtime: ${runtimeDir}`));
 
 	// Find all source files in the target runtime
@@ -31,7 +42,7 @@ export async function transferJavadocs(
 	let processedFiles = 0;
 	let errorCount = 0;
 	const startTime = new Date();
-
+	const logs: TransferLog[] = [];
 	for (const filePath of sourceFiles) {
 		try {
 			const filename = path.basename(filePath);
@@ -39,7 +50,7 @@ export async function transferJavadocs(
 				chalk.cyan.bold(`📄 Processing file (${processedFiles + 1}/${sourceFiles.length}): ${filename}`)
 			);
 
-			const usage = await transferJavadocsToSourceFile(filePath, javaTypes, llm, debug);
+			const usage = await transferJavadocsToSourceFile(filePath, javaTypes, llm, logs, debug);
 			tokenStats.inputTokens += usage.inputTokens;
 			tokenStats.outputTokens += usage.outputTokens;
 			tokenStats.totalTokens += usage.totalTokens;
@@ -71,13 +82,14 @@ export async function transferJavadocs(
 		}
 	}
 
-	return tokenStats;
+	return { tokenStats, logs };
 }
 
 export async function transferJavadocsToSourceFile(
 	filePath: string,
 	javaTypes: JavaType[],
 	llm: LlmInterface,
+	transferLogs: TransferLog[],
 	debug = false
 ): Promise<LlmUsage> {
 	let usage: LlmUsage = {
@@ -99,6 +111,7 @@ export async function transferJavadocsToSourceFile(
 			console.log(chalk.green(`  │  ✓ Found ${sourceTypes.length} types: ${sourceTypes.join(", ")}`));
 		} else {
 			console.log(chalk.yellow(`  │  ⚠️  No types found in file`));
+			transferLogs.push({ level: "info", message: "No types found in file " + filePath });
 			return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 		}
 
@@ -131,6 +144,7 @@ export async function transferJavadocsToSourceFile(
 			}
 		} else {
 			console.log(chalk.yellow(`  │  ⚠️  No type mappings found.`));
+			transferLogs.push({ level: "info", message: "No type mappings found for " + filePath });
 			return usage;
 		}
 
@@ -171,13 +185,19 @@ export async function transferJavadocsToSourceFile(
 			if (corrections.length === 0 || corrections.every(edit => edit.oldString === edit.newString)) break;
 		} while (++iterations < maxIterations);
 
-		console.log(chalk.green(`  └─ ✓ Complete\n`));
-		// Write final result
-		return usage;
+		const codeChanged = await hasCodeChanges(sourceCode, updatedCode, llm);
+		if (codeChanged.hasChanged) {
+			// error code was changed. add to logs as well
+			console.error(chalk.red(`  └─ ❌ Error: Code was changed`));
+			transferLogs.push({ level: "error", message: "Code changed in " + filePath + ": " + codeChanged.changes });
+		} else {
+			console.log(chalk.green(`  └─ ✓ Complete\n`));
+		}
 	} catch (error) {
 		console.error(chalk.red(`  └─ ❌ Error: ${(error as Error).message}\n`));
-		return usage;
+		transferLogs.push({ level: "error", message: "Error processing " + filePath + ": " + (error as Error).message });
 	}
+	return usage;
 }
 
 /**
@@ -302,7 +322,10 @@ function filterJavaTypes(javaTypes: JavaType[], javaTypesToInclude: string[]): M
 			}
 
 			if (doc.nestedTypes && doc.nestedTypes.length > 0) {
-				matches.push(...findMatchingTypes(doc.nestedTypes));
+				const matchedNestedTypes = findMatchingTypes(doc.nestedTypes);
+				if (matchedNestedTypes.length > 0) {
+					matches.push(...matchedNestedTypes);
+				}
 			}
 		}
 
@@ -311,6 +334,7 @@ function filterJavaTypes(javaTypes: JavaType[], javaTypesToInclude: string[]): M
 
 	const filtered = findMatchingTypes(javaTypes);
 	console.log(chalk.gray(`  │  └─ Found ${filtered.length} matching types after filtering`));
+	console.log(chalk.gray(`  │  └─ ${filtered.map(type => type.fullName).join(", ")}`));
 	return filtered;
 }
 
@@ -366,20 +390,27 @@ Your task is to identify elements in the source code that need documentation and
 For EACH element that needs documentation:
 1. Identify the source element (class, method, property, etc.)
 2. Find the matching Java documentation
-3. Generate documentation in the appropriate style for ${getLanguageName(fileExtension)}
-4. Output an edit with "oldString" (original code) and "newString" (with documentation added or updated)
+3. If you found matching Java documentation:
+   - Generate documentation in the appropriate style for ${getLanguageName(fileExtension)}
+   - Output an edit with "oldString" (original code) and "newString" (with documentation added or updated)
+4. If you did not find matching Java documentation:
+   - DO NOT add documentation to the element
+   - Output nothing for this element
 
 CRITICAL REQUIREMENTS:
 - NEVER modify actual code - only add or update documentation comments
 - UPDATE the existing documentation if it already exists
-- Include enough context in "oldString" to ensure a unique match
+- Include enough context in "oldString" to ensure a unique match (2-4 lines before and after the element recommended)
 - Follow the target language's documentation style guide
 - Only add documentation for elements that have corresponding Java documentation
 - DO NOT add parameter documentation if the Java doc doesn't include it
 - DO NOT add return documentation if the Java doc doesn't include it
 - DO NOT duplicate documentation
+- DO NOT add documentation to elements that are not in the Java documentation
 - PRESERVE the exact indentation of the original code
 - MATCH the indentation of documentation comments to the code they document
+
+ABSOLUTELY DO NOT add documentation to elements that are not in the Java documentation!
 
 Return your response as a JSON array of edit objects:
 
@@ -396,7 +427,7 @@ Return your response as a JSON array of edit objects:
 ]
 \`\`\`
 
-Only return the JSON array - no other text. Include ALL needed edits in a single response.
+Only return the JSON array - no other text. Include ALL needed edits in a single response. If you do not want to make edits, return an empty array.
 `;
 }
 
@@ -653,6 +684,8 @@ Return ONLY a JSON array of correction edits. Each edit should fix ONE specific 
 \`\`\`
 
 Focus ONLY on fixing documentation errors - do not modify or add new documentation content.
+
+Only return the JSON array - no other text. Include ALL needed edits in a single response. If you do not want to make edits, return an empty array.
 `;
 }
 
@@ -670,4 +703,64 @@ function printUsage(usage: LlmUsage): void {
 			`  │      │  Tokens used: ${usage.totalTokens.toLocaleString()} (${usage.inputTokens.toLocaleString()} input, ${usage.outputTokens.toLocaleString()} output)`
 		)
 	);
+}
+
+async function hasCodeChanges(oldCode: string, newCode: string, llm: LlmInterface): Promise<{ hasChanged: boolean, changes: string }> {
+	const differences = diffLines(oldCode, newCode);
+
+	const diff = differences
+		.filter(part => part.added || part.removed)
+		.map(part => {
+			const prefix = part.added ? '+' : part.removed ? '-' : ' ';
+			return part.value.split('\n')
+				.filter(line => line.trim().length > 0)
+				.map(line => `${prefix}\t${line}`)
+				.join('\n');
+		})
+		.join('\n');
+
+	if (!diff) {
+		return { hasChanged: false, changes: "" };
+	}
+
+	const prompt = `# Task: Identify code changes in diffs
+	You are given a diff for a source code file. Identify all changes to the code, except documentation changes.
+
+	## Source Code
+	\`\`\`
+	${diff}
+	\`\`\`
+
+	## Task and Output Specification
+	Output each code modification. Separate each modification by an empty line. Output only the part of the diff that actually modifies existing code. Do not include changes that only change documentation.
+
+	Input example:
+	\`\`\`
+	-	public var getUpdateCache(get, never):Array<Updatable>;
+	+	/** The list of bones and constraints, sorted in the order they should be updated, as computed by {@link #updateCache()}. */
+	+	public var updateCache(get, never):Array<Updatable>;
+
+	-	private function get_getUpdateCache():Array<Updatable> {
+	+	private function get_updateCache():Array<Updatable> {
+			 return _updateCache;
+		 }
+	\`\`\`
+
+	Output example:
+	\`\`\`
+	-	private function get_getUpdateCache():Array<Updatable> {
+	+	private function get_updateCache():Array<Updatable> {
+			 return _updateCache;
+		 }
+	\`\`\`
+
+	If there are no modifications, output nothing or an empty line.
+
+	Only output the modifications you identified.
+
+	DO NOT output text explaining your thinking.`;
+
+	const response = await llm.complete(prompt);
+
+	return { hasChanged: response.text.trim().length > 0, changes: response.text };
 }

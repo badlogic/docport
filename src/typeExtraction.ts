@@ -79,6 +79,11 @@ export function extractTypesFromSourceCode(
     processedCode = preprocessCppCode(sourceCode);
   }
 
+  // Preprocess source code for Haxe
+  if (extension === ".hx") {
+    processedCode = preprocessHaxeCode(sourceCode);
+  }
+
   // Initialize parser based on file extension
   const parser = new Parser();
   switch (extension) {
@@ -155,6 +160,23 @@ function preprocessCppCode(sourceCode: string): string {
 }
 
 /**
+ * Preprocess Haxe code to handle macros and special syntax
+ */
+function preprocessHaxeCode(sourceCode: string): string {
+  let processed = sourceCode;
+  // Remove Haxe-specific macros
+  processed = processed.replace(/@:native\([^)]*\)/g, '');
+  processed = processed.replace(/@:enum/g, 'enum');
+  // Remove package and import statements
+  processed = processed.replace(/package\s+[^;]+;/g, '');
+  processed = processed.replace(/import\s+[^;]+;/g, '');
+
+  // Simplify abstract class handling
+  processed = processed.replace(/abstract class/g, 'class');
+  return processed;
+}
+
+/**
  * Extract types based on language-specific node types
  */
 function extractTypesByLanguage(
@@ -184,6 +206,10 @@ function extractTypesByLanguage(
         "interface_declaration",
         "enum_declaration",
         "type_alias_declaration",
+        // Add these to better handle Haxe syntax
+        "declaration",
+        "class_specifier",
+        "struct_specifier"
       ]);
     case ".ts":
     case ".tsx":
@@ -433,6 +459,29 @@ function getTypeName(
       return declName;
     }
     return null;
+  }
+
+  // Add special handling for Haxe files
+  if (extension === ".hx") {
+    // For class declarations in Haxe
+    if (node.type === "class_declaration" || node.type === "declaration") {
+      // Try to find the class name after "class" keyword
+      const classKeyword = node.descendantsOfType("class")[0];
+      if (classKeyword && classKeyword.nextNamedSibling) {
+        nameNode = classKeyword.nextNamedSibling;
+      } else {
+        // Fallback: look for identifier after class keyword
+        const identifiers = node.descendantsOfType("identifier");
+        for (const id of identifiers) {
+          if (classKeyword &&
+              id.startPosition.row >= classKeyword.startPosition.row &&
+              id.startPosition.column > classKeyword.startPosition.column) {
+            nameNode = id;
+            break;
+          }
+        }
+      }
+    }
   }
 
   switch (extension) {
