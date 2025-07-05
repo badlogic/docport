@@ -417,6 +417,8 @@ CRITICAL REQUIREMENTS:
 
 ABSOLUTELY DO NOT add documentation to elements that are not in the Java documentation!
 
+ABSOLUTELY DO NOT add parameter and return type documentation if the Javadoc does not include it!
+
 Return your response as a JSON array of edit objects:
 
 \`\`\`json
@@ -525,6 +527,7 @@ function getDocumentationStyle(fileExtension: string): string {
 			return `
 Use XML documentation comments (///) for C# code:
 - Place comments directly above the entity being documented
+- If the documentation is a single sentence, output a single line block comment.
 - Use <summary> for general descriptions
 - Use <param name="paramName"> for parameters
 - Use <returns> for return values
